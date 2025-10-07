@@ -1,0 +1,57 @@
+[workspace]
+members = ["."]
+
+[workspace.dependencies]
+embedded-graphics = "0.8.1"
+embedded-layout = "0.4.2"
+embedded-text = "0.7.2"
+
+[profile.dev]
+debug = 0
+
+[package]
+name = "lewoc"
+version = "0.1.0"
+edition = "2024"
+
+[patch.crates-io]
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-time-driver = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-usb-logger = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git" }
+
+[dependencies]
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", features = ["arch-cortex-m", "executor-thread", "executor-interrupt"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", features = ["time-driver", "critical-section-impl", "rp235xb", "binary-info"] }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-usb-logger = { git = "https://github.com/embassy-rs/embassy.git" }
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", features = ["bluetooth"] }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", features = ["log", "medium-ethernet", "proto-ipv4", "tcp"] }
+
+cortex-m = { version = "0.7.7", features = ["inline-asm"] }
+cortex-m-rt = "0.7.5"
+critical-section = "1.2"
+panic-probe = { version = "1.0.0" }
+static_cell = "2.1.1"
+log = { version = "0.4.28", default-features = false }
+defmt-rtt = "1.0.0"
+embedded-io-async = "0.6.1"
+heapless = "0.8.0"
+trouble-host = { version = "0.3.0", features = ["security"] }
+rand_core = "0.6"
+embedded-storage-async = "0.4.1"
+sequential-storage = "5.0.1"
+embedded-hal-bus = { version = "0.3.0", features = ["async"] }
+lora-phy = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["lorawan-radio"] }
+lorawan-device = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["embassy-time"] }

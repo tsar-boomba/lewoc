@@ -1,0 +1,15 @@
+{
+	"rust-analyzer.cargo.allTargets": false,
+    "rust-analyzer.cargo.extraArgs": [
+        "--target",
+        "thumbv8m.main-none-eabihf"
+    ],
+    "cssVariables.lookupFiles": [
+        "**/*.css",
+        "**/*.scss",
+        "**/*.sass",
+        "**/*.less",
+        "tauri-app/node_modules/@mantine/core/styles.css"
+    ],
+    "prettier.prettierPath": "./tauri-app/node_modules/prettier"
+}
