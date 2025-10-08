@@ -6,7 +6,7 @@ mod lora;
 mod storage;
 mod utils;
 
-use core::future;
+use core::num::NonZeroU128;
 
 use embassy_executor::Spawner;
 use embassy_futures::join;
@@ -111,22 +111,19 @@ async fn main(spawner: Spawner) {
     let mut flash: embassy_rp::flash::Flash<'_, _, _, FLASH_SIZE> =
         embassy_rp::flash::Flash::new(p.FLASH, p.DMA_CH1);
 
-    let info = storage::load_info(&mut flash).await;
-    log::info!("loaded info: {info:#?}");
-    if let Err(err) = storage::store_info(
-        &mut flash,
-        &storage::Info {
+    let info = storage::load_info(&mut flash)
+        .await
+        .unwrap_or_else(|| storage::Info {
             encryption_key: 0x123456789.try_into().ok(),
-        },
-    )
-    .await
-    {
+        });
+    log::info!("loaded info: {info:#?}");
+    if let Err(err) = storage::store_info(&mut flash, &info).await {
         log::error!("error storing: {err:?}");
     };
 
     join::join(
         bt_server::run(control, controller, &mut RoscRng, &mut flash),
-        // future::pending::<()>(),
+        // core::future::pending::<()>(),
         lora::run(
             p.SPI0,
             p.PIN_18,
@@ -139,6 +136,9 @@ async fn main(spawner: Spawner) {
             p.PIN_22,
             p.PIN_4,
             &mut RoscRng,
+            info.encryption_key
+                .map(NonZeroU128::get)
+                .unwrap_or(0x123456789),
         ),
     )
     .await;

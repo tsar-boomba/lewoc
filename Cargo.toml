@@ -49,9 +49,10 @@ defmt-rtt = "1.0.0"
 embedded-io-async = "0.6.1"
 heapless = "0.8.0"
 trouble-host = { version = "0.3.0", features = ["security"] }
-rand_core = "0.6"
+rand_core = { version = "0.6", default-features = false }
 embedded-storage-async = "0.4.1"
 sequential-storage = "5.0.1"
 embedded-hal-bus = { version = "0.3.0", features = ["async"] }
 lora-phy = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["lorawan-radio"] }
 lorawan-device = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["embassy-time"] }
+ascon-aead = { version = "0.5.2", default-features = false, features = ["heapless"] }
