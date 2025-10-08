@@ -22,4 +22,4 @@ Haiiiii!!! This is the repo for ALL the code for LEWOC.
 
 1. Clone this repo
 2. Run `cargo run` in the root directory. This will compile the program and flash it to a connected pico in _BOOTSEL mode_. You can enter this mode by holding the BOOTSEL button when you plug in the pico or reset it.
-3. Now the board should turn on the LED or something to let you know its on! If not, you can debug it by using a serial monitor (like my own creation [picotool](https://github.com/tsar-boomba/picotool)) to check the logs it sends over USB.
+3. Now the board should turn on the LED or something to let you know its on! If not, you can debug it by using a serial monitor (like my own creation [picocom](https://github.com/tsar-boomba/picocom)) to check the logs it sends over USB.
