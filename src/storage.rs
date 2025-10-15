@@ -6,10 +6,10 @@ use sequential_storage::{
     map::{SerializationError, Value},
 };
 
-const DATA_START_ADDR: u32 = 0x100000;
+const DATA_START_ADDR: u32 = 0x0010_0000;
 pub const INFO_START_OFFSET: u32 = 0x0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Info {
     /// Symmetric encryption key for all packets sent and received. If changed, requires reset of device.
     pub encryption_key: Option<NonZeroU128>,
@@ -23,13 +23,6 @@ impl Info {
     }
 }
 
-impl Default for Info {
-    fn default() -> Self {
-        Self {
-            encryption_key: None,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 struct StoredInfo {
@@ -83,7 +76,7 @@ pub async fn store_info<S: NorFlash>(
     sequential_storage::erase_all(storage, flash_range::<S>(INFO_START_OFFSET)).await?;
     let mut buffer = [0; StoredInfo::SER_SIZE.next_multiple_of(32)];
     let value = StoredInfo {
-        encryption_key: info.encryption_key.map(NonZeroU128::get).unwrap_or(0),
+        encryption_key: info.encryption_key.map_or(0, NonZeroU128::get),
     };
 
     sequential_storage::map::store_item(
@@ -111,7 +104,7 @@ pub async fn load_info<S: NorFlash>(storage: &mut S) -> Option<Info> {
     .ok()?;
 
     let mut curr_info = None;
-    while let Some((_, value)) = iter.next::<StoredInfo>(&mut buffer).await.ok()? {
+    while let Some(((), value)) = iter.next::<StoredInfo>(&mut buffer).await.ok()? {
         curr_info = Some(value);
     }
 

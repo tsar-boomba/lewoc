@@ -41,6 +41,7 @@ bind_interrupts!(struct Irqs {
 });
 
 const FLASH_SIZE: usize = 4 * 1024 * 1024;
+const DEFAULT_ENCRYPTION_KEY: u128 = 0xF22B_4E48_59B3_4D73_9C8D_559B_2C12_2C5D;
 
 #[embassy_executor::task]
 async fn logger_task(driver: usb::Driver<'static, USB>) {
@@ -114,12 +115,9 @@ async fn main(spawner: Spawner) {
     let info = storage::load_info(&mut flash)
         .await
         .unwrap_or_else(|| storage::Info {
-            encryption_key: 0x123456789.try_into().ok(),
+            encryption_key: DEFAULT_ENCRYPTION_KEY.try_into().ok(),
         });
     log::info!("loaded info: {info:#?}");
-    if let Err(err) = storage::store_info(&mut flash, &info).await {
-        log::error!("error storing: {err:?}");
-    };
 
     join::join(
         bt_server::run(control, controller, &mut RoscRng, &mut flash),
@@ -137,8 +135,7 @@ async fn main(spawner: Spawner) {
             p.PIN_4,
             &mut RoscRng,
             info.encryption_key
-                .map(NonZeroU128::get)
-                .unwrap_or(0x123456789),
+                .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
         ),
     )
     .await;

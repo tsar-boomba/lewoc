@@ -9,6 +9,12 @@ embedded-text = "0.7.2"
 [profile.dev]
 debug = 0
 
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+future_not_send = "allow"
+
 [package]
 name = "lewoc"
 version = "0.1.0"

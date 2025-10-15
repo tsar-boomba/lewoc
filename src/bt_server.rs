@@ -1,4 +1,5 @@
 use embassy_futures::join::join;
+use embassy_time::Duration;
 use embedded_storage_async::nor_flash::NorFlash;
 use rand_core::{CryptoRng, RngCore};
 use trouble_host::prelude::*;
@@ -18,8 +19,8 @@ struct Server {
 }
 
 // TODO: create new service and characteristics; share code between FE and FW
-const SERVICE_UUID: u128 = 0xB41C9628F8C34F2B80054AC70A4A06BB;
-const CHARACTERISTIC_UUID: u128 = 0xEEC428D7C63E4AE897FA3F300C236452;
+const SERVICE_UUID: u128 = 0xB41C_9628_F8C3_4F2B_8005_4AC7_0A4A_06BB;
+const CHARACTERISTIC_UUID: u128 = 0xEEC4_28D7_C63E_4AE8_97FA_3F30_0C23_6452;
 
 #[gatt_service(uuid = SERVICE_UUID)]
 struct CustomService {
@@ -43,15 +44,15 @@ pub async fn run<C, RNG, S>(
     // use e.g. the MAC 6 byte array as the address (how to get that varies by the platform).
     let address: Address = Address::random(control.address().await);
 
-    log::info!("Our address = {}", address);
+    log::info!("Our address = {address}");
 
-    let mut info = if let Some(stored_info) = load_info(storage).await {
-        log::info!("got stored info");
-        stored_info
-    } else {
+    let mut info = (load_info(storage).await).map_or_else(|| {
         log::info!("using default info");
         Info::default()
-    };
+    }, |stored_info| {
+        log::info!("got stored info");
+        stored_info
+    });
 
     let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
@@ -136,29 +137,29 @@ async fn gatt_events_task<S: NorFlash>(
         match conn.next().await {
             GattConnectionEvent::Disconnected { reason } => break reason,
             GattConnectionEvent::PairingComplete { security_level, .. } => {
-                log::info!("[gatt] pairing complete: {:?}", security_level);
+                log::info!("[gatt] pairing complete: {security_level:?}");
             }
             GattConnectionEvent::PairingFailed(err) => {
-                log::error!("[gatt] pairing error: {:?}", err);
+                log::error!("[gatt] pairing error: {err:?}");
             }
             GattConnectionEvent::Gatt { event } => {
                 let result = match &event {
                     GattEvent::Read(event) => {
                         if event.handle() == characteristic.handle {
                             let value = server.get(&characteristic);
-                            log::info!("[gatt] Read Event to Characteristic: {:?}", value);
+                            log::info!("[gatt] Read Event to Characteristic: {value:?}");
                         }
                         None
                     }
                     GattEvent::Write(event) => {
                         if event.handle() == characteristic.handle {
                             let value = event.value(&characteristic).unwrap();
-                            log::info!("[gatt] Write to Characteristic: {}", value);
+                            log::info!("[gatt] Write to Characteristic: {value}");
                         }
 
                         None
                     }
-                    _ => None,
+                    GattEvent::Other(_) => None,
                 };
 
                 let reply_result = if let Some(code) = result {
@@ -171,7 +172,7 @@ async fn gatt_events_task<S: NorFlash>(
 
                 match reply_result {
                     Ok(reply) => reply.send().await,
-                    Err(e) => log::warn!("[gatt] error sending response: {:?}", e),
+                    Err(e) => log::warn!("[gatt] error sending response: {e:?}"),
                 }
 
                 log::info!("[gatt] Sent GATT reply");
@@ -180,7 +181,7 @@ async fn gatt_events_task<S: NorFlash>(
         }
     };
 
-    log::info!("[gatt] disconnected: {:?}", reason);
+    log::info!("[gatt] disconnected: {reason:?}");
     Ok(())
 }
 
@@ -199,7 +200,18 @@ async fn advertise<'values, 'server, C: Controller>(
     )?;
     let advertiser = peripheral
         .advertise(
-            &Default::default(),
+            &AdvertisementParameters {
+                    primary_phy: PhyKind::Le1M,
+                    secondary_phy: PhyKind::Le1M,
+                    tx_power: TxPower::ZerodBm,
+                    timeout: None,
+                    max_events: None,
+                    interval_min: Duration::from_millis(160),
+                    interval_max: Duration::from_millis(160),
+                    filter_policy: AdvFilterPolicy::default(),
+                    channel_map: None,
+                    fragment: false,
+                },
             Advertisement::ConnectableScannableUndirected {
                 adv_data: &advertiser_data[..len],
                 scan_data: &[],
