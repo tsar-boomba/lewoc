@@ -18,7 +18,7 @@ struct Server {
     service: CustomService,
 }
 
-// TODO: create new service and characteristics; share code between FE and FW
+// TODO: create new service and characteristic UUIDs; share code between FE and FW
 const SERVICE_UUID: u128 = 0xB41C_9628_F8C3_4F2B_8005_4AC7_0A4A_06BB;
 const CHARACTERISTIC_UUID: u128 = 0xEEC4_28D7_C63E_4AE8_97FA_3F30_0C23_6452;
 

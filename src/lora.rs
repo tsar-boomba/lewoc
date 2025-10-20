@@ -148,9 +148,9 @@ pub async fn run<'d, T: spi::Instance>(
 
     let mut last_tx = Instant::now();
 
-    // Try to receive for a while, then send, and loop doing this
     log::info!("LoRa rx tx loop starting");
     loop {
+        // Use Channel Activity Detection (CAD) before receiving to save power
         if let Err(err) = lora.prepare_for_cad(&mdltn_params).await {
             log::error!("Failed to prepare for cad: {err:?}");
             continue;
@@ -186,7 +186,7 @@ pub async fn run<'d, T: spi::Instance>(
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if last_tx.elapsed() > Duration::from_secs(1) {
+        } else if last_tx.elapsed() > Duration::from_secs(1) { // TODO: replace with actual send condition, probably channel
             // For now, try and send every 1 sec. Real world will be around here or less
             // Only try and send if the channel is inactive, and we have something to send
 
@@ -221,6 +221,7 @@ async fn send(
     packet_params: &mut PacketParams,
     buf: &[u8],
 ) -> Result<(), RadioError> {
+    // Transmit each packet multiple times to increase the chance other devices receive it
     for _ in 0..TRANSMIT_PKT_TIMES {
         match lora
             .prepare_for_tx(modulation_params, packet_params, TX_POWER, buf)
@@ -265,6 +266,7 @@ async fn receive(
             if received_len >= u8::try_from(MAGIC_WORD_SIZE).unwrap()
                 && buf[..MAGIC_WORD_SIZE] == MAGIC_WORD.to_le_bytes()
             {
+                // Only return received bytes if they start with the "magic word"
                 Ok(Some(received_len.into()))
             } else {
                 log::info!("rx unknown packet");
@@ -276,7 +278,7 @@ async fn receive(
     }
 }
 
-/// Encrypts the contents of `buf` in-place. The first `MAGIC_WORD_SIZE` bytes should be the magic word before calling.
+/// Encrypts the contents of `buf` in-place. The first `MAGIC_WORD_SIZE` bytes should be the magic word before calling, and the rest is the plaintext.
 ///
 /// After a successful call, `buf` will have structure: `MAGIC (MAGIC_WORD_SIZE-bytes) | CIPHERTEXT | MAC (16-bytes) | NONCE (16-bytes)`
 fn encrypt_in_place<const N: usize>(
@@ -297,9 +299,9 @@ fn encrypt_in_place<const N: usize>(
     Ok(())
 }
 
-/// Decrypts the contents of `buf` in-place. At call-time, buf should contain: MAGIC (MAGIC_WORD_SIZE-bytes) | CIPHERTEXT | MAC (16-bytes) | NONCE (16-bytes)
+/// Decrypts the contents of `buf` in-place. At call-time, buf should have structure: `MAGIC (MAGIC_WORD_SIZE-bytes) | CIPHERTEXT | MAC (16-bytes) | NONCE (16-bytes)`
 ///
-/// After this function is successful, `buf` will contain the plaintext data.
+/// After this function is successful, `buf` will have the structure: `MAGIC (MAGIC_WORD_SIZE-bytes) | PLAINTEXT`
 fn decrypt_in_place<const N: usize>(
     cipher: &AsconAead128,
     buf: &mut ascon_aead::aead::heapless::Vec<u8, N>,
