@@ -4,6 +4,7 @@
         "--target",
         "thumbv8m.main-none-eabihf"
     ],
+    "rust-analyzer.check.command": "clippy",
     "cssVariables.lookupFiles": [
         "**/*.css",
         "**/*.scss",
