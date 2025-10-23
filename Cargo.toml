@@ -1,5 +1,6 @@
 [workspace]
-members = ["."]
+resolver = "3"
+members = [".", "common", "graphics", "sim"]
 
 [workspace.dependencies]
 embedded-graphics = "0.8.1"

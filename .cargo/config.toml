@@ -5,7 +5,6 @@ runner = "picotool load -u -v -x -t elf"
 
 [build]
 target = "thumbv8m.main-none-eabihf"
-rustflags = "-Ctarget-cpu=cortex-m33"
 
 [env]
 DEFMT_LOG = "debug"

@@ -1,0 +1,14 @@
+[package]
+name = "graphics"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+common = { path = "../common" }
+embedded-graphics = { workspace = true }
+embedded-layout = { workspace = true }
+embedded-text = { workspace = true }
+encoding_rs = "0.8.35"
+unicode-segmentation = "1.12.0"
+rgb565 = { version = "0.1.3", default-features = false }
+embedded-canvas = "0.3.2"

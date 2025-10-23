@@ -1,0 +1,13 @@
+[package]
+name = "sim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+graphics = { path = "../graphics" }
+embedded-graphics = { workspace = true }
+embedded-layout = { workspace = true }
+embedded-text = { workspace = true }
+embedded-graphics-simulator = "0.8.0"
+common = { version = "0.1.0", path = "../common" }
+color-eyre = "0.6.5"
