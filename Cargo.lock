@@ -1518,6 +1518,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io-async",
  "embedded-storage-async",
+ "graphics",
  "heapless 0.8.0",
  "log",
  "lora-phy",

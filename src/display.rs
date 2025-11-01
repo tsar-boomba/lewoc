@@ -4,15 +4,13 @@ use embassy_rp::{
     pio, pio_programs,
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
-use embedded_hal::{self, spi::SpiBus};
+use embedded_hal::spi::SpiDevice;
 
-pub fn create<'d, T: SpiBus>(
+pub fn create<'d, T: SpiDevice>(
     spi_driver: T,
-    cs: Peri<'d, impl gpio::Pin>,
     dc: Peri<'d, impl gpio::Pin>,
     reset: Peri<'d, impl gpio::Pin>,
 ) {
-    let cs = Output::new(cs, embassy_rp::gpio::Level::Low);
     let dc = Output::new(dc, embassy_rp::gpio::Level::Low);
     let reset = Output::new(reset, embassy_rp::gpio::Level::Low);
 
@@ -21,13 +19,7 @@ pub fn create<'d, T: SpiBus>(
         log::error!("error setup display: {err:?}")
     }
 
-    log::info!("Clearing Display...");
-    display.clear(Rgb565::new(0, 0, 0)).unwrap();
+    graphics::fill(&mut display);
 
-    // graphics::fill_screen(&mut display);
     graphics::draw_message(&mut display, "Hello, World!");
-    if let Err(err) = display.update() {
-        log::error!("error updating display: {err:?}");
-        return;
-    };
 }

@@ -13,11 +13,12 @@ use embassy_executor::Spawner;
 use embassy_futures::join;
 use embassy_rp::clocks::RoscRng;
 use embassy_rp::{bind_interrupts, gpio, peripherals::USB, usb};
-use embassy_time::Timer;
+use embassy_time::{Delay, Timer};
+use embedded_hal_bus::spi::ExclusiveDevice;
 use gpio::{Level, Output};
 
 use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
-use embassy_rp::peripherals::{DMA_CH0, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, PIO0, PIO1};
 use embassy_rp::pio::{self, Pio};
 use static_cell::StaticCell;
 use trouble_host::prelude::ExternalController;
@@ -39,6 +40,7 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => pio::InterruptHandler<PIO0>;
     USBCTRL_IRQ => usb::InterruptHandler<USB>;
+    PIO1_IRQ_0 => pio::InterruptHandler<PIO1>;
 });
 
 const FLASH_SIZE: usize = 4 * 1024 * 1024;
@@ -104,18 +106,18 @@ async fn main(spawner: Spawner) {
     let display_spi = embassy_rp::pio_programs::spi::Spi::new_blocking(
         &mut pio1.common,
         pio1.sm0,
-        p.PIN_34,
-        p.PIN_32,
-        p.PIN_31,
+        p.PIN_28,
+        p.PIN_27,
+        p.PIN_26,
         Default::default(),
     );
 
-    display_spi.set_frequency(1_000_000);
+    let display_spi = ExclusiveDevice::new(display_spi, Output::new(p.PIN_2, Level::High), Delay).unwrap();
 
-    display::create(display_spi, p.PIN_4, p.PIN_1, p.PIN_2);
+    display::create(display_spi, p.PIN_0, p.PIN_1);
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
-    let state = STATE.init(cyw43::State::new());
+    let state: &mut cyw43::State = STATE.init(cyw43::State::new());
     let (_net_device, bt_device, mut control, runner) =
         cyw43::new_with_bluetooth(state, pwr, spi, fw, bt_fw).await;
     spawner.spawn(cyw43_task(runner).unwrap());

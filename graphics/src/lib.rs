@@ -12,6 +12,14 @@ use embedded_text::{
     TextBox, alignment::HorizontalAlignment, style::HeightMode, style::TextBoxStyleBuilder,
 };
 
+pub fn fill<D: DrawTargetExt<Color = Rgb565>>(target: &mut D)
+where
+    D::Error: Debug,
+{
+    target.clear(Rgb565::new(0, 0, 0));
+}
+
+
 pub fn draw_message<D: DrawTargetExt<Color = Rgb565>>(target: &mut D, message: &str)
 where
     D::Error: Debug,
