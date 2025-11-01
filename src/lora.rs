@@ -10,7 +10,7 @@ use embassy_rp::{
     gpio::{self, Input, Output},
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
-use embassy_time::{Delay, Duration, Instant};
+use embassy_time::{Delay, Duration, Instant, Timer};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use lora_phy::{
     DelayNs,
@@ -59,6 +59,9 @@ pub async fn run<'d, T: spi::Instance>(
     rst: Peri<'d, impl gpio::Pin>,
     dio0: Peri<'d, impl gpio::Pin>,
     dio1: Peri<'d, impl gpio::Pin>,
+
+    btn_help: Peri<'d, impl gpio::Pin>,
+
     rng: &mut impl RngCore,
     encryption_key: u128,
 ) {
@@ -148,6 +151,8 @@ pub async fn run<'d, T: spi::Instance>(
 
     let mut last_tx = Instant::now();
 
+    let button_help = Input::new(btn_help, gpio::Pull::Up);
+
     log::info!("LoRa rx tx loop starting");
     loop {
         // Use Channel Activity Detection (CAD) before receiving to save power
@@ -190,12 +195,34 @@ pub async fn run<'d, T: spi::Instance>(
             // For now, try and send every 1 sec. Real world will be around here or less
             // Only try and send if the channel is inactive, and we have something to send
 
+            let mut message_to_send: Option<&[u8]> = None;
+
+            // active-low: pressed when `is_low()` is true
+            if button_help.is_low() {
+                // debounce
+                Timer::after(Duration::from_millis(30)).await;
+                if button_help.is_low() {
+                    message_to_send = Some(b"HELP!");
+                } else {
+                    message_to_send = None;
+                }
+            } else {
+                message_to_send = None;
+            }
+
             send_buf.clear();
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
             // TODO: Write real data to send buf
-            send_buf.extend_from_slice(b"Hello From Green One").unwrap();
+
+            if let Some(msg) = message_to_send {
+                // put the chosen preset message
+                send_buf.extend_from_slice(msg).unwrap();
+            } else {
+                // existing fallback message
+                send_buf.extend_from_slice(b"Hello From Black One").unwrap();
+            }
 
             // Must have prepended MAGIC_WORD before this
             if encrypt_in_place(&cipher, rng, send_buf).is_ok() {

@@ -134,6 +134,9 @@ async fn main(spawner: Spawner) {
             p.PIN_20,
             p.PIN_22,
             p.PIN_4,
+
+            p.PIN_32,
+
             &mut RoscRng,
             info.encryption_key
                 .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
