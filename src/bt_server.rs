@@ -46,13 +46,16 @@ pub async fn run<C, RNG, S>(
 
     log::info!("Our address = {address}");
 
-    let mut info = (load_info(storage).await).map_or_else(|| {
-        log::info!("using default info");
-        Info::default()
-    }, |stored_info| {
-        log::info!("got stored info");
-        stored_info
-    });
+    let mut info = (load_info(storage).await).map_or_else(
+        || {
+            log::info!("using default info");
+            Info::default()
+        },
+        |stored_info| {
+            log::info!("got stored info");
+            stored_info
+        },
+    );
 
     let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
@@ -69,7 +72,7 @@ pub async fn run<C, RNG, S>(
 
     log::info!("Starting advertising and GATT service");
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-        name: "Caltrain Bike Tag",
+        name: "LEWOC",
         appearance: &appearance::DISPLAY,
     }))
     .unwrap();
@@ -149,11 +152,19 @@ async fn gatt_events_task<S: NorFlash>(
                             let value = server.get(message_characteristic);
                             log::info!("[gatt] Read Event to Characteristic: {value:?}");
                         }
+
                         None
                     }
                     GattEvent::Write(event) => {
                         if event.handle() == message_characteristic.handle {
-                            let value = event.value(message_characteristic).unwrap();
+                            let mut value = event.value(message_characteristic).unwrap();
+                            if value.len() >= 2 {
+                                // For some god forsaken reason the second byte of the write payload is always 1 less than
+                                // was actually sent by the client/central. So we correct it here before sending it off to wherever else.
+                                // 😭😭😭😭😭😭😭😭
+                                unsafe { value.as_bytes_mut()[1] += 1 }
+                            }
+
                             log::info!("[gatt] Write to Characteristic: {value}");
                         }
 
@@ -201,17 +212,17 @@ async fn advertise<'values, 'server, C: Controller>(
     let advertiser = peripheral
         .advertise(
             &AdvertisementParameters {
-                    primary_phy: PhyKind::Le1M,
-                    secondary_phy: PhyKind::Le1M,
-                    tx_power: TxPower::ZerodBm,
-                    timeout: None,
-                    max_events: None,
-                    interval_min: Duration::from_millis(160),
-                    interval_max: Duration::from_millis(160),
-                    filter_policy: AdvFilterPolicy::default(),
-                    channel_map: None,
-                    fragment: false,
-                },
+                primary_phy: PhyKind::Le1M,
+                secondary_phy: PhyKind::Le1M,
+                tx_power: TxPower::ZerodBm,
+                timeout: None,
+                max_events: None,
+                interval_min: Duration::from_millis(160),
+                interval_max: Duration::from_millis(160),
+                filter_policy: AdvFilterPolicy::default(),
+                channel_map: None,
+                fragment: false,
+            },
             Advertisement::ConnectableScannableUndirected {
                 adv_data: &advertiser_data[..len],
                 scan_data: &[],

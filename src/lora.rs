@@ -169,7 +169,7 @@ pub async fn run<'d, T: spi::Instance>(
             recv_buf.resize_default(MAX_PAYLOAD_LEN).unwrap();
             match receive(&mut lora, &mdltn_params, &rx_pkt_params, recv_buf).await {
                 Ok(None) => {
-                    log::debug!("RX timed out");
+                    // log::debug!("RX timed out");
                 }
                 Ok(Some(num_read)) => {
                     log::debug!("RX'd {num_read} bytes");
@@ -186,7 +186,8 @@ pub async fn run<'d, T: spi::Instance>(
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if last_tx.elapsed() > Duration::from_secs(1) { // TODO: replace with actual send condition, probably channel
+        } else if last_tx.elapsed() > Duration::from_secs(1) {
+            // TODO: replace with actual send condition, probably channel
             // For now, try and send every 1 sec. Real world will be around here or less
             // Only try and send if the channel is inactive, and we have something to send
 
@@ -211,7 +212,6 @@ pub async fn run<'d, T: spi::Instance>(
 
             last_tx = Instant::now();
         }
-
     }
 }
 
@@ -234,7 +234,7 @@ async fn send(
             }
         }
 
-        log::debug!("LoRa tx-ing");
+        // log::debug!("LoRa tx-ing");
 
         lora.tx().await?;
     }
@@ -259,7 +259,7 @@ async fn receive(
         }
     }
 
-    log::info!("LoRa rx-ing");
+    // log::info!("LoRa rx-ing");
 
     match lora.rx(packet_params, buf).await {
         Ok((received_len, _rx_pkt_status)) => {

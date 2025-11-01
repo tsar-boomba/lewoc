@@ -3,9 +3,9 @@
 
 mod bt_server;
 mod lora;
+mod proto;
 mod storage;
 mod utils;
-mod proto;
 
 use core::num::NonZeroU128;
 

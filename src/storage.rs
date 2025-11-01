@@ -23,7 +23,6 @@ impl Info {
     }
 }
 
-
 #[derive(Debug, Clone)]
 struct StoredInfo {
     encryption_key: u128,
