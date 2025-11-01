@@ -47,6 +47,7 @@ cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git" }
 embassy-net = { git = "https://github.com/embassy-rs/embassy.git", features = ["log", "medium-ethernet", "proto-ipv4", "tcp"] }
 
 graphics = { path = "./graphics" }
+common = { path = "./common" }
 
 embedded-hal =  "1.0"
 st7735-lcd = "0.10.0"

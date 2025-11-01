@@ -1499,6 +1499,7 @@ name = "lewoc"
 version = "0.1.0"
 dependencies = [
  "ascon-aead",
+ "common",
  "cortex-m",
  "cortex-m-rt",
  "critical-section",

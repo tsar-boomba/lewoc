@@ -1,8 +1,6 @@
 use embassy_rp::{
     Peri,
-    gpio::{self, Input, Output},
-    pio, pio_programs,
-    spi::{self, ClkPin, MisoPin, MosiPin},
+    gpio::{self, Output},
 };
 use embedded_hal::spi::SpiDevice;
 
@@ -14,7 +12,15 @@ pub fn create<'d, T: SpiDevice>(
     let dc = Output::new(dc, embassy_rp::gpio::Level::Low);
     let reset = Output::new(reset, embassy_rp::gpio::Level::Low);
 
-    let mut display = st7735_lcd::ST7735::new(spi_driver, dc, reset, true, false, 128, 160);
+    let mut display = st7735_lcd::ST7735::new(
+        spi_driver,
+        dc,
+        reset,
+        true,
+        false,
+        common::DISPLAY_WIDTH,
+        common::DISPLAY_HEIGHT,
+    );
     if let Err(err) = display.init(&mut embassy_time::Delay) {
         log::error!("error setup display: {err:?}")
     }

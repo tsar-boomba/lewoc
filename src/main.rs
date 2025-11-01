@@ -103,16 +103,20 @@ async fn main(spawner: Spawner) {
 
     let mut pio1 = Pio::new(p.PIO1, Irqs);
 
+    let mut config = embassy_rp::spi::Config::default();
+    config.frequency = 24_000_000;
+
     let display_spi = embassy_rp::pio_programs::spi::Spi::new_blocking(
         &mut pio1.common,
         pio1.sm0,
         p.PIN_28,
         p.PIN_27,
         p.PIN_26,
-        Default::default(),
+        config,
     );
 
-    let display_spi = ExclusiveDevice::new(display_spi, Output::new(p.PIN_2, Level::High), Delay).unwrap();
+    let display_spi =
+        ExclusiveDevice::new(display_spi, Output::new(p.PIN_2, Level::High), Delay).unwrap();
 
     display::create(display_spi, p.PIN_0, p.PIN_1);
 

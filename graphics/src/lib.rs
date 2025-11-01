@@ -2,11 +2,10 @@
 use core::fmt::Debug;
 
 use embedded_graphics::{
-    mono_font::{MonoTextStyleBuilder, ascii::FONT_6X9},
+    mono_font::{MonoTextStyleBuilder, ascii::FONT_9X15},
     pixelcolor::Rgb565,
     prelude::*,
     primitives::Rectangle,
-    text::{Baseline, Text},
 };
 use embedded_text::{
     TextBox, alignment::HorizontalAlignment, style::HeightMode, style::TextBoxStyleBuilder,
@@ -19,13 +18,12 @@ where
     target.clear(Rgb565::new(0, 0, 0));
 }
 
-
 pub fn draw_message<D: DrawTargetExt<Color = Rgb565>>(target: &mut D, message: &str)
 where
     D::Error: Debug,
 {
     let name_text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
+        .font(&FONT_9X15)
         .text_color(Rgb565::new(255, 0, 0))
         .build();
 
