@@ -32,7 +32,7 @@ where
         .build();
 
     let text_box = TextBox::with_textbox_style(
-        "HELLO! IBOMB, I HOPE ALL IS WELL WITH THE WIFE AND KIDS. I JUST FELL OFF A CLIFF. HELP!",
+        "HELLO NIX YOU ARE A GREAT PERSON AND GREAT FRIEND AND STUFF HII!",
         bounds,
         name_text_style,
         textbox_style,
