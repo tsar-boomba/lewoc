@@ -674,7 +674,7 @@ source = "git+https://github.com/embassy-rs/embassy.git#70ad2c448254e808252ac94c
 [[package]]
 name = "embassy-futures"
 version = "0.1.2"
-source = "git+https://github.com/embassy-rs/embassy.git#280088946f9da3ea3c1ece4f7e73d585fc681893"
+source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
 
 [[package]]
 name = "embassy-hal-internal"
@@ -760,7 +760,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.7.2"
-source = "git+https://github.com/embassy-rs/embassy.git#280088946f9da3ea3c1ece4f7e73d585fc681893"
+source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -773,7 +773,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.5.0"
-source = "git+https://github.com/embassy-rs/embassy.git#280088946f9da3ea3c1ece4f7e73d585fc681893"
+source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -788,7 +788,7 @@ dependencies = [
 [[package]]
 name = "embassy-time-driver"
 version = "0.2.1"
-source = "git+https://github.com/embassy-rs/embassy.git#280088946f9da3ea3c1ece4f7e73d585fc681893"
+source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
 dependencies = [
  "document-features",
 ]
@@ -1514,6 +1514,7 @@ dependencies = [
  "embassy-time",
  "embassy-usb",
  "embassy-usb-logger",
+ "embedded-hal 1.0.0",
  "embedded-hal-bus",
  "embedded-io-async",
  "embedded-storage-async",
@@ -1524,6 +1525,7 @@ dependencies = [
  "panic-probe",
  "rand_core 0.6.4",
  "sequential-storage",
+ "st7735-lcd",
  "static_cell",
  "trouble-host",
 ]
@@ -2405,6 +2407,17 @@ checksum = "f3e6ad23b128192ed337dfa4f1b8099ced0c2bf30d61e551b65fda5916dbb850"
 dependencies = [
  "encode_unicode",
  "serde",
+]
+
+[[package]]
+name = "st7735-lcd"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f62bd63569c4bab37b9b8c6cfd72ed6281701cff08eec80bc178f3e56df2872"
+dependencies = [
+ "embedded-graphics-core",
+ "embedded-hal 1.0.0",
+ "nb 1.1.0",
 ]
 
 [[package]]

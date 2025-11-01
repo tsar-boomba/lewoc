@@ -2,6 +2,7 @@
 #![no_main]
 
 mod bt_server;
+mod display;
 mod lora;
 mod storage;
 mod utils;
@@ -98,6 +99,21 @@ async fn main(spawner: Spawner) {
         p.DMA_CH0,
     );
 
+    let mut pio1 = Pio::new(p.PIO1, Irqs);
+
+    let display_spi = embassy_rp::pio_programs::spi::Spi::new_blocking(
+        &mut pio1.common,
+        pio1.sm0,
+        p.PIN_34,
+        p.PIN_32,
+        p.PIN_31,
+        Default::default(),
+    );
+
+    display_spi.set_frequency(1_000_000);
+
+    display::create(display_spi, p.PIN_4, p.PIN_1, p.PIN_2);
+
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state = STATE.init(cyw43::State::new());
     let (_net_device, bt_device, mut control, runner) =
@@ -106,7 +122,7 @@ async fn main(spawner: Spawner) {
 
     control.init(clm).await;
 
-    log::info!("Initialized cyw43");
+    log::info!("Initialized cyw44");
 
     let controller: ExternalController<_, 10> = ExternalController::new(bt_device);
     let mut flash: embassy_rp::flash::Flash<'_, _, _, FLASH_SIZE> =

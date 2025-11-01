@@ -1,4 +1,3 @@
-use common::Station;
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -17,7 +16,7 @@ fn main() -> color_eyre::Result<()> {
     let mut window = Window::new("LEWOC Window Sim", &output_settings);
     window.update(&display);
 
-    graphics::draw_station_name(&mut display, Station::SF22ndStreet);
+    graphics::draw_message(&mut display, "Hey Andria!");
     window.update(&display);
 
     loop {
