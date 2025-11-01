@@ -5,6 +5,7 @@ mod bt_server;
 mod lora;
 mod storage;
 mod utils;
+mod proto;
 
 use core::num::NonZeroU128;
 
@@ -57,7 +58,7 @@ async fn cyw43_task(
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
+    let p = embassy_rp::init(embassy_rp::config::Config::default());
 
     // add some delay to give an attached debug probe time to parse the
     // defmt RTT header. Reading that header might touch flash memory, which
@@ -142,5 +143,7 @@ async fn main(spawner: Spawner) {
 
     log::error!("Futures ended!");
 
-    loop {}
+    loop {
+        cortex_m::asm::wfi();
+    }
 }

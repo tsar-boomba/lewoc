@@ -10,7 +10,7 @@ use embassy_rp::{
     gpio::{self, Input, Output},
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_time::{Delay, Duration, Instant};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use lora_phy::{
     DelayNs,
@@ -195,7 +195,7 @@ pub async fn run<'d, T: spi::Instance>(
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
             // TODO: Write real data to send buf
-            send_buf.extend_from_slice(b"Hello LoRa").unwrap();
+            send_buf.extend_from_slice(b"Hello From Green One").unwrap();
 
             // Must have prepended MAGIC_WORD before this
             if encrypt_in_place(&cipher, rng, send_buf).is_ok() {
