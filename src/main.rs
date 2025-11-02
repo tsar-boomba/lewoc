@@ -11,6 +11,7 @@ use core::num::NonZeroU128;
 
 use embassy_executor::Spawner;
 use embassy_futures::join;
+use embassy_rp::Peri;
 use embassy_rp::clocks::RoscRng;
 use embassy_rp::{bind_interrupts, gpio, peripherals::USB, usb};
 use embassy_time::{Delay, Timer};
@@ -18,7 +19,7 @@ use embedded_hal_bus::spi::ExclusiveDevice;
 use gpio::{Level, Output};
 
 use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
-use embassy_rp::peripherals::{DMA_CH0, PIO0, PIO1};
+use embassy_rp::peripherals::{DMA_CH0, PIN_3, PIO0, PIO1, PWM_SLICE1};
 use embassy_rp::pio::{self, Pio};
 use static_cell::StaticCell;
 use trouble_host::prelude::ExternalController;
@@ -56,6 +57,38 @@ async fn cyw43_task(
     runner: cyw43::Runner<'static, Output<'static>, PioSpi<'static, PIO0, 0, DMA_CH0>>,
 ) -> ! {
     runner.run().await
+}
+
+#[embassy_executor::task]
+async fn pwm_backlight_task(slice: Peri<'static, PWM_SLICE1>, bl_pin: Peri<'static, PIN_3>) {
+    use embassy_rp::pwm::{Config, Pwm};
+    use embassy_time::Timer;
+
+    const LEVELS: [f32; 3] = [0.15, 0.50, 1.00];
+
+    let mut cfg = Config::default();
+    cfg.top = 32_768;
+
+    let mut pwm = Pwm::new_output_b(slice, bl_pin, cfg.clone());
+
+    let mut index = 0;
+
+    loop {
+        let duty = (cfg.top as f32 * LEVELS[index]) as u16;
+        cfg.compare_b = duty;
+        pwm.set_config(&cfg);
+
+        log::info!(
+            "Backlight brightness: {}% ({} / {})",
+            (LEVELS[index] * 100.0) as u8,
+            duty,
+            cfg.top
+        );
+
+        Timer::after_secs(2).await;
+
+        index = (index + 1) % LEVELS.len();
+    }
 }
 
 #[embassy_executor::main]
@@ -118,7 +151,9 @@ async fn main(spawner: Spawner) {
     let display_spi =
         ExclusiveDevice::new(display_spi, Output::new(p.PIN_2, Level::High), Delay).unwrap();
 
-    display::create(display_spi, p.PIN_0, p.PIN_1);
+    let screen = display::create(display_spi, p.PIN_0, p.PIN_1);
+
+    spawner.spawn(pwm_backlight_task(p.PWM_SLICE1, p.PIN_3).unwrap());
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state: &mut cyw43::State = STATE.init(cyw43::State::new());
