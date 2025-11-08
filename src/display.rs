@@ -12,7 +12,7 @@ pub fn create<'d, T: SpiDevice>(
     let dc = Output::new(dc, embassy_rp::gpio::Level::Low);
     let reset = Output::new(reset, embassy_rp::gpio::Level::Low);
 
-    let mut display = st7735_lcd::ST7735::new(
+    let mut display: st7735_lcd::ST7735<T, Output<'_>, Output<'_>> = st7735_lcd::ST7735::new(
         spi_driver,
         dc,
         reset,

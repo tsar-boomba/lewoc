@@ -153,7 +153,7 @@ async fn main(spawner: Spawner) {
 
     let screen = display::create(display_spi, p.PIN_0, p.PIN_1);
 
-    spawner.spawn(pwm_backlight_task(p.PWM_SLICE1, p.PIN_3).unwrap());
+    // spawner.spawn(pwm_backlight_task(p.PWM_SLICE1, p.PIN_3).unwrap());
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state: &mut cyw43::State = STATE.init(cyw43::State::new());
