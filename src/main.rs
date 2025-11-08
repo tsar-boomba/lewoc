@@ -171,7 +171,7 @@ async fn main(spawner: Spawner) {
     // spawner.spawn(btn_to_led(btn, light).unwrap());
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
-    let state: &mut cyw43::State = STATE.init(cyw43::State::new());
+    let state = STATE.init(cyw43::State::new());
     let (_net_device, bt_device, mut control, runner) =
         cyw43::new_with_bluetooth(state, pwr, spi, fw, bt_fw).await;
     spawner.spawn(cyw43_task(runner).unwrap());
@@ -208,9 +208,9 @@ async fn main(spawner: Spawner) {
             &mut RoscRng,
             info.encryption_key
                 .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
-            p.PIN_6, 
-            p.PIN_7, 
-            &mut screen
+            p.PIN_6,
+            p.PIN_7,
+            &mut screen,
         ),
     )
     .await;

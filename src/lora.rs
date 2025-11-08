@@ -67,7 +67,7 @@ pub async fn run<'d, T: spi::Instance>(
     encryption_key: u128,
     btn_good_pin: Peri<'d, impl gpio::Pin>,
     btn_help_pin: Peri<'d, impl gpio::Pin>,
-    screen: &mut Display<'d, impl SpiDevice>
+    screen: &mut Display<'d, impl SpiDevice>,
 ) {
     static RECV_BUF: StaticCell<ascon_aead::aead::heapless::Vec<u8, MAX_PAYLOAD_LEN>> =
         StaticCell::new();
@@ -194,15 +194,21 @@ pub async fn run<'d, T: spi::Instance>(
                     } else {
                         // use received packet through recv_buf
                         let data = &recv_buf[MAGIC_WORD_SIZE..];
-                        let output = core::str::from_utf8(data).unwrap();
+
+                        let output = match core::str::from_utf8(data) {
+                            Ok(str_data) => str_data,
+                            Err(err) => {
+                                log::error!("Error rx: {err:?}");
+                                continue;
+                            }
+                        };
                         log::info!("Received packet: {:?}", output);
                         screen.draw(output);
                     }
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if help || good { 
-
+        } else if help || good {
             send_buf.clear();
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())

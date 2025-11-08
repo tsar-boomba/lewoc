@@ -26,17 +26,17 @@ impl<'d, T: SpiDevice> Display<'d, T> {
             common::DISPLAY_WIDTH,
             common::DISPLAY_HEIGHT,
         );
-        
+
         if let Err(err) = display.init(&mut embassy_time::Delay) {
             log::error!("error setup display: {err:?}")
         }
 
         graphics::fill(&mut display);
         graphics::draw_message(&mut display, "Hello, World!");
-        Display { display}
+        Display { display }
     }
 
-    pub fn draw (&mut self, message: &str) {
+    pub fn draw(&mut self, message: &str) {
         graphics::fill(&mut self.display);
         graphics::draw_message(&mut self.display, message);
     }
