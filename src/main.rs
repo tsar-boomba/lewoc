@@ -4,6 +4,7 @@
 mod bt_server;
 mod display;
 mod lora;
+mod proto;
 mod storage;
 mod utils;
 
@@ -104,7 +105,7 @@ async fn btn_to_led(btn: Input<'static>, mut light: Output<'static>) {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
+    let p = embassy_rp::init(embassy_rp::config::Config::default());
 
     // add some delay to give an attached debug probe time to parse the
     // defmt RTT header. Reading that header might touch flash memory, which
@@ -216,5 +217,7 @@ async fn main(spawner: Spawner) {
 
     log::error!("Futures ended!");
 
-    loop {}
+    loop {
+        cortex_m::asm::wfi();
+    }
 }

@@ -10,6 +10,7 @@ use embassy_rp::{
     gpio::{self, Input, Output, Pull},
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
+
 use embassy_time::{Delay, Duration, Instant, Timer};
 use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::ExclusiveDevice;
@@ -181,7 +182,7 @@ pub async fn run<'d, T: spi::Instance>(
             recv_buf.resize_default(MAX_PAYLOAD_LEN).unwrap();
             match receive(&mut lora, &mdltn_params, &rx_pkt_params, recv_buf).await {
                 Ok(None) => {
-                    log::debug!("RX timed out");
+                    // log::debug!("RX timed out");
                 }
                 Ok(Some(num_read)) => {
                     log::debug!("RX'd {num_read} bytes");
@@ -200,15 +201,12 @@ pub async fn run<'d, T: spi::Instance>(
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if help || good { // TODO: replace with actual send condition, probably channel
-            // For now, try and send every 1 sec. Real world will be around here or less
-            // Only try and send if the channel is inactive, and we have something to send
+        } else if help || good { 
 
             send_buf.clear();
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
-
 
             let send_data: &[u8] = match (help, good) {
                 (true, _) => b"HELP NEEDED",
@@ -237,7 +235,6 @@ pub async fn run<'d, T: spi::Instance>(
 
             last_tx = Instant::now();
         }
-
     }
 }
 
@@ -260,7 +257,7 @@ async fn send(
             }
         }
 
-        log::debug!("LoRa tx-ing");
+        // log::debug!("LoRa tx-ing");
 
         lora.tx().await?;
     }
@@ -285,7 +282,7 @@ async fn receive(
         }
     }
 
-    log::info!("LoRa rx-ing");
+    // log::info!("LoRa rx-ing");
 
     match lora.rx(packet_params, buf).await {
         Ok((received_len, _rx_pkt_status)) => {
