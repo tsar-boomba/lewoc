@@ -470,6 +470,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cyw43-firmware"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1f6670bcc22685ab25c8262b9bfdcdbbb12e12605569fc4bcf8b01aa5dc55c2"
+
+[[package]]
 name = "cyw43-pio"
 version = "0.8.0"
 source = "git+https://github.com/embassy-rs/embassy.git#70ad2c448254e808252ac94c8f0fe4d436038909"
@@ -1504,6 +1510,7 @@ dependencies = [
  "cortex-m-rt",
  "critical-section",
  "cyw43",
+ "cyw43-firmware",
  "cyw43-pio",
  "defmt-rtt",
  "embassy-embedded-hal",

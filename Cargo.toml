@@ -68,3 +68,4 @@ embedded-hal-bus = { version = "0.3.0", features = ["async"] }
 lora-phy = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["lorawan-radio"] }
 lorawan-device = { git = "https://github.com/tsar-boomba/lora-rs.git", features = ["embassy-time"] }
 ascon-aead = { version = "0.5.2", default-features = false, features = ["heapless"] }
+cyw43-firmware = { version = "0.1.0", features = ["wifi", "bluetooth"] }

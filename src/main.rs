@@ -121,9 +121,9 @@ async fn main(spawner: Spawner) {
     //     p.PIN_14,
     // );
 
-    let fw = include_bytes!("../43439A0.bin");
-    let clm = include_bytes!("../43439A0_clm.bin");
-    let bt_fw = include_bytes!("../43439A0_btfw.bin");
+    let fw = cyw43_firmware::CYW43_43439A0;
+    let clm = cyw43_firmware::CYW43_43439A0_CLM;
+    let bt_fw = cyw43_firmware::CYW43_43439A0_BTFW;
 
     // To make flashing faster for development, you may want to flash the firmwares independently
     // at hardcoded addresses, instead of baking them into the program with `include_bytes!`:
