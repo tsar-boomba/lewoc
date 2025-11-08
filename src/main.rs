@@ -2,6 +2,7 @@
 #![no_main]
 
 mod bt_server;
+mod display;
 mod lora;
 mod proto;
 mod storage;
@@ -11,13 +12,15 @@ use core::num::NonZeroU128;
 
 use embassy_executor::Spawner;
 use embassy_futures::join;
+use embassy_rp::Peri;
 use embassy_rp::clocks::RoscRng;
 use embassy_rp::{bind_interrupts, gpio, peripherals::USB, usb};
-use embassy_time::Timer;
-use gpio::{Level, Output};
+use embassy_time::{Delay, Duration, Timer};
+use embedded_hal_bus::spi::ExclusiveDevice;
+use gpio::{Input, Level, Output};
 
 use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
-use embassy_rp::peripherals::{DMA_CH0, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, PIN_3, PIO0, PIO1, PWM_SLICE1};
 use embassy_rp::pio::{self, Pio};
 use static_cell::StaticCell;
 use trouble_host::prelude::ExternalController;
@@ -39,6 +42,7 @@ pub static PICOTOOL_ENTRIES: [embassy_rp::binary_info::EntryAddr; 4] = [
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => pio::InterruptHandler<PIO0>;
     USBCTRL_IRQ => usb::InterruptHandler<USB>;
+    PIO1_IRQ_0 => pio::InterruptHandler<PIO1>;
 });
 
 const FLASH_SIZE: usize = 4 * 1024 * 1024;
@@ -55,6 +59,49 @@ async fn cyw43_task(
 ) -> ! {
     runner.run().await
 }
+
+#[embassy_executor::task]
+async fn btn_to_led(btn: Input<'static>, mut light: Output<'static>) {
+    loop {
+        if btn.is_low() {
+            light.set_high();
+        } else {
+            light.set_low();
+        }
+    }
+}
+
+// #[embassy_executor::task]
+// async fn pwm_backlight_task(slice: Peri<'static, PWM_SLICE1>, bl_pin: Peri<'static, PIN_3>) {
+//     use embassy_rp::pwm::{Config, Pwm};
+//     use embassy_time::Timer;
+
+//     const LEVELS: [f32; 3] = [0.15, 0.50, 1.00];
+
+//     let mut cfg = Config::default();
+//     cfg.top = 32_768;
+
+//     let mut pwm = Pwm::new_output_b(slice, bl_pin, cfg.clone());
+
+//     let mut index = 0;
+
+//     loop {
+//         let duty = (cfg.top as f32 * LEVELS[index]) as u16;
+//         cfg.compare_b = duty;
+//         pwm.set_config(&cfg);
+
+//         log::info!(
+//             "Backlight brightness: {}% ({} / {})",
+//             (LEVELS[index] * 100.0) as u8,
+//             duty,
+//             cfg.top
+//         );
+
+//         Timer::after_secs(2).await;
+
+//         index = (index + 1) % LEVELS.len();
+//     }
+// }
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -85,6 +132,8 @@ async fn main(spawner: Spawner) {
     // let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 230321) };
     // let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
 
+    // let btn: Input<'_> = Input::new(p.PIN_15, gpio::Pull::Up);
+    // let mut light: Output<'_> = Output::new(p.PIN_14, Level::High);
     let pwr = Output::new(p.PIN_23, Level::Low);
     let cs = Output::new(p.PIN_25, Level::High);
     let mut pio = Pio::new(p.PIO0, Irqs);
@@ -99,6 +148,28 @@ async fn main(spawner: Spawner) {
         p.DMA_CH0,
     );
 
+    let mut pio1 = Pio::new(p.PIO1, Irqs);
+
+    let mut config = embassy_rp::spi::Config::default();
+    config.frequency = 24_000_000;
+
+    let display_spi = embassy_rp::pio_programs::spi::Spi::new_blocking(
+        &mut pio1.common,
+        pio1.sm0,
+        p.PIN_28,
+        p.PIN_27,
+        p.PIN_26,
+        config,
+    );
+
+    let display_spi =
+        ExclusiveDevice::new(display_spi, Output::new(p.PIN_2, Level::High), Delay).unwrap();
+
+    let mut screen = display::Display::new(display_spi, p.PIN_0, p.PIN_1);
+
+    // spawner.spawn(pwm_backlight_task(p.PWM_SLICE1, p.PIN_3).unwrap());
+    // spawner.spawn(btn_to_led(btn, light).unwrap());
+
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state = STATE.init(cyw43::State::new());
     let (_net_device, bt_device, mut control, runner) =
@@ -107,7 +178,7 @@ async fn main(spawner: Spawner) {
 
     control.init(clm).await;
 
-    log::info!("Initialized cyw43");
+    log::info!("Initialized cyw44");
 
     let controller: ExternalController<_, 10> = ExternalController::new(bt_device);
     let mut flash: embassy_rp::flash::Flash<'_, _, _, FLASH_SIZE> =
@@ -137,6 +208,9 @@ async fn main(spawner: Spawner) {
             &mut RoscRng,
             info.encryption_key
                 .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
+            p.PIN_6,
+            p.PIN_7,
+            &mut screen,
         ),
     )
     .await;

@@ -1,10 +1,5 @@
 {
-	"rust-analyzer.cargo.allTargets": false,
-    "rust-analyzer.cargo.extraArgs": [
-        "--target",
-        "thumbv8m.main-none-eabihf"
-    ],
-    "rust-analyzer.check.command": "clippy",
+	y
     "cssVariables.lookupFiles": [
         "**/*.css",
         "**/*.scss",

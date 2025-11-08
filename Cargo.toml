@@ -1,5 +1,6 @@
 [workspace]
-members = ["."]
+resolver = "3"
+members = [".", "common", "graphics", "sim"]
 
 [workspace.dependencies]
 embedded-graphics = "0.8.1"
@@ -45,6 +46,11 @@ cyw43 = { git = "https://github.com/embassy-rs/embassy.git", features = ["blueto
 cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git" }
 embassy-net = { git = "https://github.com/embassy-rs/embassy.git", features = ["log", "medium-ethernet", "proto-ipv4", "tcp"] }
 
+graphics = { path = "./graphics" }
+common = { path = "./common" }
+
+embedded-hal =  "1.0"
+st7735-lcd = "0.10.0"
 cortex-m = { version = "0.7.7", features = ["inline-asm"] }
 cortex-m-rt = "0.7.5"
 critical-section = "1.2"
