@@ -4,29 +4,40 @@ use embassy_rp::{
 };
 use embedded_hal::spi::SpiDevice;
 
-pub fn create<'d, T: SpiDevice>(
-    spi_driver: T,
-    dc: Peri<'d, impl gpio::Pin>,
-    reset: Peri<'d, impl gpio::Pin>,
-) -> st7735_lcd::ST7735<T, Output<'d>, Output<'d>> {
-    let dc = Output::new(dc, embassy_rp::gpio::Level::Low);
-    let reset = Output::new(reset, embassy_rp::gpio::Level::Low);
+pub struct Display<'d, T: SpiDevice> {
+    pub display: st7735_lcd::ST7735<T, Output<'d>, Output<'d>>,
+}
 
-    let mut display: st7735_lcd::ST7735<T, Output<'_>, Output<'_>> = st7735_lcd::ST7735::new(
-        spi_driver,
-        dc,
-        reset,
-        true,
-        false,
-        common::DISPLAY_WIDTH,
-        common::DISPLAY_HEIGHT,
-    );
+impl<'d, T: SpiDevice> Display<'d, T> {
+    pub fn new(
+        spi_driver: T,
+        dc: Peri<'d, impl gpio::Pin>,
+        reset: Peri<'d, impl gpio::Pin>,
+    ) -> Self {
+        let dc = Output::new(dc, embassy_rp::gpio::Level::Low);
+        let reset = Output::new(reset, embassy_rp::gpio::Level::Low);
 
-    if let Err(err) = display.init(&mut embassy_time::Delay) {
-        log::error!("error setup display: {err:?}")
+        let mut display: st7735_lcd::ST7735<T, Output<'_>, Output<'_>> = st7735_lcd::ST7735::new(
+            spi_driver,
+            dc,
+            reset,
+            true,
+            false,
+            common::DISPLAY_WIDTH,
+            common::DISPLAY_HEIGHT,
+        );
+        
+        if let Err(err) = display.init(&mut embassy_time::Delay) {
+            log::error!("error setup display: {err:?}")
+        }
+
+        graphics::fill(&mut display);
+        graphics::draw_message(&mut display, "Hello, World!");
+        Display { display}
     }
 
-    graphics::fill(&mut display);
-    graphics::draw_message(&mut display, "Hello, World!");
-    display
+    pub fn draw (&mut self, message: &str) {
+        graphics::fill(&mut self.display);
+        graphics::draw_message(&mut self.display, message);
+    }
 }

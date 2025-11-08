@@ -7,10 +7,11 @@ use ascon_aead::{
 use embassy_rp::{
     Peri,
     dma::Channel,
-    gpio::{self, Input, Output},
+    gpio::{self, Input, Output, Pull},
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
 use embassy_time::{Delay, Duration, Instant, Timer};
+use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::ExclusiveDevice;
 use lora_phy::{
     DelayNs,
@@ -26,6 +27,8 @@ use lora_phy::{
 use lorawan_device::async_device::region;
 use rand_core::RngCore;
 use static_cell::StaticCell;
+
+use crate::display::Display;
 
 // warning: set these appropriately for the region
 const LORAWAN_REGION: region::Region = region::Region::US915;
@@ -61,6 +64,9 @@ pub async fn run<'d, T: spi::Instance>(
     dio1: Peri<'d, impl gpio::Pin>,
     rng: &mut impl RngCore,
     encryption_key: u128,
+    btn_good_pin: Peri<'d, impl gpio::Pin>,
+    btn_help_pin: Peri<'d, impl gpio::Pin>,
+    screen: &mut Display<'d, impl SpiDevice>
 ) {
     static RECV_BUF: StaticCell<ascon_aead::aead::heapless::Vec<u8, MAX_PAYLOAD_LEN>> =
         StaticCell::new();
@@ -94,6 +100,9 @@ pub async fn run<'d, T: spi::Instance>(
         log::error!("Error LoRa init: {err:?}");
         return;
     }
+
+    let btn_good = Input::new(btn_good_pin, Pull::Up);
+    let btn_help = Input::new(btn_help_pin, Pull::Up);
 
     let recv_buf = RECV_BUF.init_with(Default::default);
     // Fill with 0s
@@ -164,6 +173,9 @@ pub async fn run<'d, T: spi::Instance>(
             }
         };
 
+        let help: bool = btn_help.is_low();
+        let good: bool = btn_good.is_low();
+
         if channel_is_active {
             // Fill with 0s
             recv_buf.resize_default(MAX_PAYLOAD_LEN).unwrap();
@@ -181,12 +193,14 @@ pub async fn run<'d, T: spi::Instance>(
                     } else {
                         // use received packet through recv_buf
                         let data = &recv_buf[MAGIC_WORD_SIZE..];
-                        log::info!("Received packet: {:?}", core::str::from_utf8(data));
+                        let output = core::str::from_utf8(data).unwrap();
+                        log::info!("Received packet: {:?}", output);
+                        screen.draw(output);
                     }
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if last_tx.elapsed() > Duration::from_secs(1) { // TODO: replace with actual send condition, probably channel
+        } else if help || good { // TODO: replace with actual send condition, probably channel
             // For now, try and send every 1 sec. Real world will be around here or less
             // Only try and send if the channel is inactive, and we have something to send
 
@@ -194,8 +208,20 @@ pub async fn run<'d, T: spi::Instance>(
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
-            // TODO: Write real data to send buf
-            send_buf.extend_from_slice(b"Hello LoRa").unwrap();
+
+
+            let send_data: &[u8] = match (help, good) {
+                (true, _) => b"HELP NEEDED",
+                (_, true) => b"All good!",
+                _ => b"Hello LoRa",
+            };
+
+            match core::str::from_utf8(send_data) {
+                Ok(s) => log::info!("Sending message: {}", s),
+                Err(_) => log::info!("Sending bytes: {:?}", send_data),
+            }
+
+            send_buf.extend_from_slice(send_data).unwrap();
 
             // Must have prepended MAGIC_WORD before this
             if encrypt_in_place(&cipher, rng, send_buf).is_ok() {
