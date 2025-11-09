@@ -15,7 +15,7 @@ pub fn fill<D: DrawTargetExt<Color = Rgb565>>(target: &mut D)
 where
     D::Error: Debug,
 {
-    target.clear(Rgb565::new(0, 0, 0));
+    target.clear(Rgb565::new(0, 0, 0)).unwrap();
 }
 
 pub fn draw_message<D: DrawTargetExt<Color = Rgb565>>(target: &mut D, message: &str)

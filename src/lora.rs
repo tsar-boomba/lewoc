@@ -7,11 +7,12 @@ use ascon_aead::{
 use embassy_rp::{
     Peri,
     dma::Channel,
-    gpio::{self, Input, Output, Pull},
+    gpio::{self, Input, Output},
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
 
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_sync::{blocking_mutex::raw::RawMutex, signal::Signal};
+use embassy_time::Delay;
 use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::ExclusiveDevice;
 use lora_phy::{
@@ -29,7 +30,7 @@ use lorawan_device::async_device::region;
 use rand_core::RngCore;
 use static_cell::StaticCell;
 
-use crate::display::Display;
+use crate::{display::Display, input::Button};
 
 // warning: set these appropriately for the region
 const LORAWAN_REGION: region::Region = region::Region::US915;
@@ -52,7 +53,7 @@ const TRANSMIT_PKT_TIMES: usize = 2;
     clippy::too_many_lines,
     clippy::cognitive_complexity
 )]
-pub async fn run<'d, T: spi::Instance>(
+pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
     spi_peri: Peri<'d, T>,
     clk: Peri<'d, impl ClkPin<T> + 'd>,
     mosi: Peri<'d, impl MosiPin<T> + 'd>,
@@ -65,8 +66,7 @@ pub async fn run<'d, T: spi::Instance>(
     dio1: Peri<'d, impl gpio::Pin>,
     rng: &mut impl RngCore,
     encryption_key: u128,
-    btn_good_pin: Peri<'d, impl gpio::Pin>,
-    btn_help_pin: Peri<'d, impl gpio::Pin>,
+    input_signal: &'static Signal<SignalM, Button>,
     screen: &mut Display<'d, impl SpiDevice>,
 ) {
     static RECV_BUF: StaticCell<ascon_aead::aead::heapless::Vec<u8, MAX_PAYLOAD_LEN>> =
@@ -101,9 +101,6 @@ pub async fn run<'d, T: spi::Instance>(
         log::error!("Error LoRa init: {err:?}");
         return;
     }
-
-    let btn_good = Input::new(btn_good_pin, Pull::Up);
-    let btn_help = Input::new(btn_help_pin, Pull::Up);
 
     let recv_buf = RECV_BUF.init_with(Default::default);
     // Fill with 0s
@@ -156,8 +153,6 @@ pub async fn run<'d, T: spi::Instance>(
         }
     };
 
-    let mut last_tx = Instant::now();
-
     log::info!("LoRa rx tx loop starting");
     loop {
         // Use Channel Activity Detection (CAD) before receiving to save power
@@ -173,9 +168,6 @@ pub async fn run<'d, T: spi::Instance>(
                 continue;
             }
         };
-
-        let help: bool = btn_help.is_low();
-        let good: bool = btn_good.is_low();
 
         if channel_is_active {
             // Fill with 0s
@@ -208,16 +200,15 @@ pub async fn run<'d, T: spi::Instance>(
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if help || good {
+        } else if let Some(pressed_button) = input_signal.try_take() {
             send_buf.clear();
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
 
-            let send_data: &[u8] = match (help, good) {
-                (true, _) => b"HELP NEEDED",
-                (_, true) => b"All good!",
-                _ => b"Hello LoRa",
+            let send_data: &[u8] = match pressed_button {
+                Button::Help => b"HELP NEEDED",
+                Button::Good => b"All good!",
             };
 
             match core::str::from_utf8(send_data) {
@@ -238,8 +229,6 @@ pub async fn run<'d, T: spi::Instance>(
             } else {
                 log::error!("Didn't send packet due to encryption error");
             }
-
-            last_tx = Instant::now();
         }
     }
 }

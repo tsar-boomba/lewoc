@@ -3,6 +3,7 @@
 
 mod bt_server;
 mod display;
+mod input;
 mod lora;
 mod proto;
 mod storage;
@@ -12,18 +13,22 @@ use core::num::NonZeroU128;
 
 use embassy_executor::Spawner;
 use embassy_futures::join;
-use embassy_rp::Peri;
 use embassy_rp::clocks::RoscRng;
+use embassy_rp::gpio::Pull;
 use embassy_rp::{bind_interrupts, gpio, peripherals::USB, usb};
-use embassy_time::{Delay, Duration, Timer};
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::signal::Signal;
+use embassy_time::{Delay, Timer};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use gpio::{Input, Level, Output};
 
+use crate::input::Button;
 use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
-use embassy_rp::peripherals::{DMA_CH0, PIN_3, PIO0, PIO1, PWM_SLICE1};
+use embassy_rp::peripherals::{DMA_CH0, PIO0, PIO1};
 use embassy_rp::pio::{self, Pio};
-use static_cell::StaticCell;
+use static_cell::{ConstStaticCell, StaticCell};
 use trouble_host::prelude::ExternalController;
+
 use {defmt_rtt as _, panic_probe as _};
 
 // Program metadata for `picotool info`.
@@ -61,50 +66,18 @@ async fn cyw43_task(
 }
 
 #[embassy_executor::task]
-async fn btn_to_led(btn: Input<'static>, mut light: Output<'static>) {
-    loop {
-        if btn.is_low() {
-            light.set_high();
-        } else {
-            light.set_low();
-        }
-    }
+async fn input(
+    signal: &'static Signal<NoopRawMutex, Button>,
+    good_in: Input<'static>,
+    help_in: Input<'static>,
+) {
+    input::task(signal, good_in, help_in).await;
 }
-
-// #[embassy_executor::task]
-// async fn pwm_backlight_task(slice: Peri<'static, PWM_SLICE1>, bl_pin: Peri<'static, PIN_3>) {
-//     use embassy_rp::pwm::{Config, Pwm};
-//     use embassy_time::Timer;
-
-//     const LEVELS: [f32; 3] = [0.15, 0.50, 1.00];
-
-//     let mut cfg = Config::default();
-//     cfg.top = 32_768;
-
-//     let mut pwm = Pwm::new_output_b(slice, bl_pin, cfg.clone());
-
-//     let mut index = 0;
-
-//     loop {
-//         let duty = (cfg.top as f32 * LEVELS[index]) as u16;
-//         cfg.compare_b = duty;
-//         pwm.set_config(&cfg);
-
-//         log::info!(
-//             "Backlight brightness: {}% ({} / {})",
-//             (LEVELS[index] * 100.0) as u8,
-//             duty,
-//             cfg.top
-//         );
-
-//         Timer::after_secs(2).await;
-
-//         index = (index + 1) % LEVELS.len();
-//     }
-// }
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
+    static INPUT_SIGNAL: ConstStaticCell<Signal<NoopRawMutex, Button>> = ConstStaticCell::new(Signal::new());
+
     let p = embassy_rp::init(embassy_rp::config::Config::default());
 
     // add some delay to give an attached debug probe time to parse the
@@ -191,6 +164,17 @@ async fn main(spawner: Spawner) {
         });
     log::info!("loaded info: {info:#?}");
 
+    let input_signal = INPUT_SIGNAL.take();
+
+    spawner.spawn(
+        input(
+            input_signal,
+            Input::new(p.PIN_6, Pull::Up),
+            Input::new(p.PIN_7, Pull::Up),
+        )
+        .unwrap(),
+    );
+
     join::join(
         bt_server::run(control, controller, &mut RoscRng, &mut flash),
         // core::future::pending::<()>(),
@@ -208,8 +192,7 @@ async fn main(spawner: Spawner) {
             &mut RoscRng,
             info.encryption_key
                 .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
-            p.PIN_6,
-            p.PIN_7,
+                input_signal,
             &mut screen,
         ),
     )
