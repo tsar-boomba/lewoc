@@ -11,9 +11,12 @@ use embassy_rp::{
     spi::{self, ClkPin, MisoPin, MosiPin},
 };
 
-use embassy_sync::{blocking_mutex::raw::RawMutex, signal::Signal};
+use embassy_sync::{
+    blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+    signal::Signal,
+    zerocopy_channel,
+};
 use embassy_time::Delay;
-use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::ExclusiveDevice;
 use lora_phy::{
     DelayNs,
@@ -30,7 +33,7 @@ use lorawan_device::async_device::region;
 use rand_core::RngCore;
 use static_cell::StaticCell;
 
-use crate::{display::Display, input::Button};
+use crate::{display::DisplayMessage, input::Button};
 
 // warning: set these appropriately for the region
 const LORAWAN_REGION: region::Region = region::Region::US915;
@@ -67,7 +70,7 @@ pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
     rng: &mut impl RngCore,
     encryption_key: u128,
     input_signal: &'static Signal<SignalM, Button>,
-    screen: &mut Display<'d, impl SpiDevice>,
+    mut sender: zerocopy_channel::Sender<'static, CriticalSectionRawMutex, DisplayMessage>,
 ) {
     static RECV_BUF: StaticCell<ascon_aead::aead::heapless::Vec<u8, MAX_PAYLOAD_LEN>> =
         StaticCell::new();
@@ -190,12 +193,19 @@ pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
                         let output = match core::str::from_utf8(data) {
                             Ok(str_data) => str_data,
                             Err(err) => {
-                                log::error!("Error rx: {err:?}");
+                                log::error!("Non-utf8 packet: {err:?}");
                                 continue;
                             }
                         };
-                        log::info!("Received packet: {:?}", output);
-                        screen.draw(output);
+                        log::info!("Received packet: {output:?}");
+
+                        if output.len() <= 128 {
+                            let out_msg = sender.send().await;
+                            *out_msg = DisplayMessage::Message(output.try_into().unwrap());
+                            sender.send_done();
+                        } else {
+                            log::error!("Received message too long to display");
+                        }
                     }
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
@@ -212,8 +222,8 @@ pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
             };
 
             match core::str::from_utf8(send_data) {
-                Ok(s) => log::info!("Sending message: {}", s),
-                Err(_) => log::info!("Sending bytes: {:?}", send_data),
+                Ok(str) => log::info!("Sending message: {str}"),
+                Err(_) => log::info!("Sending bytes: {send_data:?}"),
             }
 
             send_buf.extend_from_slice(send_data).unwrap();

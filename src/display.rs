@@ -8,6 +8,11 @@ pub struct Display<'d, T: SpiDevice> {
     pub display: st7735_lcd::ST7735<T, Output<'d>, Output<'d>>,
 }
 
+pub enum DisplayMessage {
+    None,
+    Message(heapless::String<128>),
+}
+
 impl<'d, T: SpiDevice> Display<'d, T> {
     pub fn new(
         spi_driver: T,
@@ -28,7 +33,7 @@ impl<'d, T: SpiDevice> Display<'d, T> {
         );
 
         if let Err(err) = display.init(&mut embassy_time::Delay) {
-            log::error!("error setup display: {err:?}")
+            log::error!("error setup display: {err:?}");
         }
 
         graphics::fill(&mut display);

@@ -15,8 +15,8 @@ pub async fn task<'a, M: RawMutex>(
     mut help_in: Input<'a>,
 ) {
     loop {
-        let good_low = good_in.wait_for_low();
-        let help_low = help_in.wait_for_low();
+        let good_low = good_in.wait_for_falling_edge();
+        let help_low = help_in.wait_for_falling_edge();
 
         match select(good_low, help_low).await {
             Either::First(()) => {

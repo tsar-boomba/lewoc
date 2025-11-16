@@ -16,10 +16,10 @@ pub struct Info {
 }
 
 impl Info {
-    fn try_from_stored(stored: &StoredInfo) -> Option<Self> {
-        Some(Self {
+    fn from_stored(stored: &StoredInfo) -> Self {
+        Self {
             encryption_key: stored.encryption_key.try_into().ok(),
-        })
+        }
     }
 }
 
@@ -107,5 +107,5 @@ pub async fn load_info<S: NorFlash>(storage: &mut S) -> Option<Info> {
         curr_info = Some(value);
     }
 
-    curr_info.as_ref().and_then(Info::try_from_stored)
+    curr_info.as_ref().map(Info::from_stored)
 }
