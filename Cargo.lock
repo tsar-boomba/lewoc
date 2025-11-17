@@ -680,7 +680,7 @@ source = "git+https://github.com/embassy-rs/embassy.git#70ad2c448254e808252ac94c
 [[package]]
 name = "embassy-futures"
 version = "0.1.2"
-source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
+source = "git+https://github.com/embassy-rs/embassy.git#aad02db7c59467374526ffbb484dbacf2a7b6e5e"
 
 [[package]]
 name = "embassy-hal-internal"
@@ -766,7 +766,7 @@ dependencies = [
 [[package]]
 name = "embassy-sync"
 version = "0.7.2"
-source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
+source = "git+https://github.com/embassy-rs/embassy.git#aad02db7c59467374526ffbb484dbacf2a7b6e5e"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -779,7 +779,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.5.0"
-source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
+source = "git+https://github.com/embassy-rs/embassy.git#aad02db7c59467374526ffbb484dbacf2a7b6e5e"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -794,7 +794,7 @@ dependencies = [
 [[package]]
 name = "embassy-time-driver"
 version = "0.2.1"
-source = "git+https://github.com/embassy-rs/embassy.git#cf231d461ff4b16cf7d16e4dbc5db909212c2c89"
+source = "git+https://github.com/embassy-rs/embassy.git#aad02db7c59467374526ffbb484dbacf2a7b6e5e"
 dependencies = [
  "document-features",
 ]
@@ -863,6 +863,15 @@ dependencies = [
  "embedded-graphics-core",
  "float-cmp",
  "micromath",
+]
+
+[[package]]
+name = "embedded-graphics-coordinate-transform"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3ba6b806e4fbe6caf97e104c6aaa090aba2b4f6463cddf4999026bf55897f18"
+dependencies = [
+ "embedded-graphics-core",
 ]
 
 [[package]]
@@ -1522,6 +1531,7 @@ dependencies = [
  "embassy-time",
  "embassy-usb",
  "embassy-usb-logger",
+ "embedded-graphics-coordinate-transform",
  "embedded-hal 1.0.0",
  "embedded-hal-bus",
  "embedded-io-async",

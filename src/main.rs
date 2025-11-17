@@ -56,6 +56,7 @@ bind_interrupts!(struct Irqs {
 
 const FLASH_SIZE: usize = 4 * 1024 * 1024;
 const DEFAULT_ENCRYPTION_KEY: u128 = 0xF22B_4E48_59B3_4D73_9C8D_559B_2C12_2C5D;
+const ID: &str = env!("ID");
 
 static mut CORE1_STACK: Stack<8192> = Stack::new();
 static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
@@ -95,6 +96,9 @@ async fn core0_main(
     /// SAFETY: `NoopRawMutex` is ok since we only signal WITHIN core0's executor
     static INPUT_SIGNAL: ConstStaticCell<Signal<NoopRawMutex, Button>> =
         ConstStaticCell::new(Signal::new());
+    static BT_MSG_SIGNAL: ConstStaticCell<
+        Signal<NoopRawMutex, trouble_host::prelude::HeaplessString<128>>,
+    > = ConstStaticCell::new(Signal::new());
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
     // add some delay to give an attached debug probe time to parse the
@@ -148,6 +152,7 @@ async fn core0_main(
     log::info!("loaded info: {info:#?}");
 
     let input_signal = INPUT_SIGNAL.take();
+    let bt_msg_signal = BT_MSG_SIGNAL.take();
 
     spawner.spawn(
         input(
@@ -159,7 +164,7 @@ async fn core0_main(
     );
 
     join::join(
-        bt_server::run(control, controller, &mut RoscRng, &mut flash),
+        bt_server::run(control, controller, bt_msg_signal, &mut RoscRng, &mut flash),
         // core::future::pending::<()>(),
         lora::run(
             p.spi0,
@@ -176,6 +181,7 @@ async fn core0_main(
             info.encryption_key
                 .map_or(DEFAULT_ENCRYPTION_KEY, NonZeroU128::get),
             input_signal,
+            bt_msg_signal,
             sender,
         ),
     )

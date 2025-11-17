@@ -1,4 +1,5 @@
 use embassy_futures::join::join;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 use embassy_time::Duration;
 use embedded_storage_async::nor_flash::NorFlash;
 use rand_core::{CryptoRng, RngCore};
@@ -21,6 +22,7 @@ struct Server {
 // TODO: share code between FE and FW
 const SERVICE_UUID: u128 = 0xFB94_E026_23E5_4BD9_97D6_74F2_5D57_9393;
 const CHARACTERISTIC_UUID: u128 = 0x9354_50A0_FAC2_4B9E_82FF_13E4_9971_0728;
+const BT_NAME: &str = concat!("LEWOC-", env!("ID"));
 
 #[gatt_service(uuid = SERVICE_UUID)]
 struct CustomService {
@@ -33,6 +35,7 @@ struct CustomService {
 pub async fn run<C, RNG, S>(
     mut control: cyw43::Control<'static>,
     controller: C,
+    msg_signal: &'static Signal<NoopRawMutex, trouble_host::prelude::HeaplessString<128>>,
     random_generator: &mut RNG,
     storage: &mut S,
 ) where
@@ -72,7 +75,7 @@ pub async fn run<C, RNG, S>(
 
     log::info!("Starting advertising and GATT service");
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-        name: "LEWOC",
+        name: BT_NAME,
         appearance: &appearance::DISPLAY,
     }))
     .unwrap();
@@ -83,14 +86,15 @@ pub async fn run<C, RNG, S>(
             match advertise(&mut peripheral, &server).await {
                 Ok(conn) => {
                     // set up tasks when the connection is established to a central, so they don't run when no one is connected.
-                    gatt_events_task(&mut control, storage, &mut info, &server, &conn)
+                    gatt_events_task(&mut control, storage, &mut info, msg_signal, &server, &conn)
                         .await
                         .unwrap();
                 }
                 Err(e) => {
                     #[cfg(feature = "defmt")]
                     let e = defmt::Debug2Format(&e);
-                    panic!("[adv] error: {:?}", e);
+                    log::error!("[adv] error: {e:?}");
+                    panic!("[adv] error: {e:?}");
                 }
             }
         }
@@ -131,6 +135,7 @@ async fn gatt_events_task<S: NorFlash>(
     control: &mut cyw43::Control<'static>,
     storage: &mut S,
     info: &mut Info,
+    msg_signal: &Signal<NoopRawMutex, trouble_host::prelude::HeaplessString<128>>,
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, DefaultPacketPool>,
 ) -> Result<(), Error> {
@@ -166,6 +171,7 @@ async fn gatt_events_task<S: NorFlash>(
                             }
 
                             log::info!("[gatt] Write to Characteristic: {value}");
+                            msg_signal.signal(value);
                         }
 
                         None
@@ -204,6 +210,7 @@ async fn advertise<'values, 'server, C: Controller>(
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
         &[
+            AdStructure::CompleteLocalName(BT_NAME.as_bytes()),
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
             AdStructure::ServiceUuids128(&[SERVICE_UUID.to_le_bytes()]),
         ],

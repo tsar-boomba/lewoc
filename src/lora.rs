@@ -70,6 +70,7 @@ pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
     rng: &mut impl RngCore,
     encryption_key: u128,
     input_signal: &'static Signal<SignalM, Button>,
+    bt_msg_signal: &'static Signal<SignalM, trouble_host::prelude::HeaplessString<128>>,
     mut sender: zerocopy_channel::Sender<'static, CriticalSectionRawMutex, DisplayMessage>,
 ) {
     static RECV_BUF: StaticCell<ascon_aead::aead::heapless::Vec<u8, MAX_PAYLOAD_LEN>> =
@@ -210,23 +211,37 @@ pub async fn run<'d, T: spi::Instance, SignalM: RawMutex>(
                 }
                 Err(err) => log::error!("Error rx: {err:?}"),
             }
-        } else if let Some(pressed_button) = input_signal.try_take() {
+        } else {
+            let Some(send_data) = ({
+                bt_msg_signal.try_take().map_or_else(
+                    || {
+                        // If no bt msg, try button
+                        input_signal.try_take().map(|pressed_button| {
+                            match pressed_button {
+                                Button::Help => &b"HELP NEEDED"[..],
+                                Button::Good => &b"All good!"[..],
+                            }
+                            .try_into()
+                            .unwrap()
+                        })
+                    },
+                    |bt_msg| Some(bt_msg.into_bytes()),
+                )
+            }) else {
+                // Nothing to send right now
+                continue;
+            };
             send_buf.clear();
             send_buf
                 .extend_from_slice(&MAGIC_WORD.to_le_bytes())
                 .unwrap();
 
-            let send_data: &[u8] = match pressed_button {
-                Button::Help => b"HELP NEEDED",
-                Button::Good => b"All good!",
-            };
-
-            match core::str::from_utf8(send_data) {
+            match core::str::from_utf8(&send_data) {
                 Ok(str) => log::info!("Sending message: {str}"),
                 Err(_) => log::info!("Sending bytes: {send_data:?}"),
             }
 
-            send_buf.extend_from_slice(send_data).unwrap();
+            send_buf.extend_from_slice(&send_data).unwrap();
 
             // Must have prepended MAGIC_WORD before this
             if encrypt_in_place(&cipher, rng, send_buf).is_ok() {

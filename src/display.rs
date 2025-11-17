@@ -2,10 +2,11 @@ use embassy_rp::{
     Peri,
     gpio::{self, Output},
 };
+use embedded_graphics_coordinate_transform::Rotate90;
 use embedded_hal::spi::SpiDevice;
 
 pub struct Display<'d, T: SpiDevice> {
-    pub display: st7735_lcd::ST7735<T, Output<'d>, Output<'d>>,
+    pub display: Rotate90<st7735_lcd::ST7735<T, Output<'d>, Output<'d>>>,
 }
 
 pub enum DisplayMessage {
@@ -36,8 +37,10 @@ impl<'d, T: SpiDevice> Display<'d, T> {
             log::error!("error setup display: {err:?}");
         }
 
+        let mut display = Rotate90::new(display);
+
         graphics::fill(&mut display);
-        graphics::draw_message(&mut display, "Hello, World!");
+        graphics::draw_message(&mut display, "Waiting for hard coded string cause yoni slow wiring");
         Display { display }
     }
 

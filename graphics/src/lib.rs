@@ -27,7 +27,8 @@ where
         .text_color(Rgb565::new(255, 0, 0))
         .build();
 
-    let bounds = Rectangle::new(Point::new(2, 0), Size::new(124, 0));
+    // Use height as width of text box since the screen is rotated
+    let bounds = Rectangle::new(Point::new(2, 0), Size::new(common::DISPLAY_HEIGHT - 2, 0));
 
     let textbox_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::FitToText)

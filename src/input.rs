@@ -15,6 +15,7 @@ pub async fn task<'a, M: RawMutex>(
     mut help_in: Input<'a>,
 ) {
     loop {
+        signal.reset();
         let good_low = good_in.wait_for_falling_edge();
         let help_low = help_in.wait_for_falling_edge();
 
